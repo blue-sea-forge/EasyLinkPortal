@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "config.schema.json",
+  "title": "Easy Link Portal config",
+  "description": "Content of the portal: brand, theme and link tiles.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "brand",
+    "theme",
+    "tiles"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Link to this schema, for editor completion and checks."
+    },
+    "brand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "logo"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Title shown next to the logo."
+        },
+        "logo": {
+          "type": "string",
+          "pattern": "^(/(?!/)|data:image/)",
+          "description": "Path of an image on this site, such as /logo.svg. Images from other sites are blocked by the Content-Security-Policy."
+        }
+      }
+    },
+    "theme": {
+      "enum": [
+        "classic-light",
+        "classic-dark",
+        "military",
+        "cozy",
+        "forest",
+        "sunset",
+        "lavender"
+      ],
+      "description": "Color theme of the portal."
+    },
+    "tiles": {
+      "type": "array",
+      "description": "Link tiles, in display order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "label",
+          "url"
+        ],
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional second line under the label."
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https?://",
+            "description": "Full web address starting with http:// or https://."
+          },
+          "icon": {
+            "enum": [
+              "book-open",
+              "calendar",
+              "chart",
+              "cloud",
+              "code",
+              "credit-card",
+              "database",
+              "file-text",
+              "folder",
+              "git-branch",
+              "globe",
+              "graduation-cap",
+              "home",
+              "image",
+              "link",
+              "lock",
+              "mail",
+              "map-pin",
+              "message-square",
+              "music",
+              "newspaper",
+              "phone",
+              "server",
+              "settings",
+              "shield",
+              "shopping-cart",
+              "terminal",
+              "users",
+              "video",
+              "wrench"
+            ],
+            "default": "link",
+            "description": "Icon shown on the tile."
+          }
+        }
+      }
+    }
+  }
+}

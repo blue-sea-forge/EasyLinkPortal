@@ -23,6 +23,9 @@ export type ValidationResult = { ok: true; config: PortalConfig } | { ok: false;
 
 export const DEFAULT_ICON: IconName = "link";
 
+/** Where config.schema.json sits relative to config.json. Editors use it for completion and checks. */
+export const CONFIG_SCHEMA_PATH = "./config.schema.json";
+
 type JsonObject = Record<string, unknown>;
 
 function isObject(value: unknown): value is JsonObject {

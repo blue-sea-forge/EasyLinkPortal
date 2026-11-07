@@ -14,7 +14,9 @@ The brand, logo, theme and links must be editable without touching the code. The
 
 4. The generator is a page of the same app at `/generate-config/`. The build writes `generate-config/index.html` as a copy of the shell, because Apache only serves files that exist and MultiViews is off. `/generate-config` without the slash is redirected by Apache. The generator reuses the validation, so a downloaded file is always one the portal accepts. The file is built in the browser and downloaded, with no server-side write.
 
-5. `public/ovh-deployments/.htaccess` is moved to the root of `dist/` by the workflow, and the folder is removed, so the site does not carry a stray copy.
+5. `public/config.schema.json` describes the file for editors, linked with `$schema`. The code validation stays the source of truth at runtime, and a test (`src/config/schema.test.ts`) fails if the schema's icon and theme lists drift from the code. The schema is stricter than the code: it rejects unknown keys to catch typos, while the portal ignores them.
+
+6. `public/ovh-deployments/.htaccess` is moved to the root of `dist/` by the workflow, and the folder is removed, so the site does not carry a stray copy.
 
 ## Alternatives rejected
 

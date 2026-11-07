@@ -1,4 +1,5 @@
 {
+  "$schema": "./config.schema.json",
   "brand": {
     "name": "Easy Link Portal",
     "logo": "/logo.svg"

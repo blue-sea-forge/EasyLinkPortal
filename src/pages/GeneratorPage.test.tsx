@@ -31,14 +31,14 @@ describe("GeneratorPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Download config.json" }));
 
     expect(document.documentElement.dataset.theme).toBe("military");
-    expect(downloadJson).toHaveBeenCalledWith("config.json", { ...TEST_CONFIG, theme: "military" });
+    expect(downloadJson).toHaveBeenCalledWith("config.json", { $schema: "./config.schema.json", ...TEST_CONFIG, theme: "military" });
   });
 
   it("downloads the config when the form is valid", async () => {
     await renderGenerator();
     fireEvent.click(screen.getByRole("button", { name: "Download config.json" }));
 
-    expect(downloadJson).toHaveBeenCalledWith("config.json", TEST_CONFIG);
+    expect(downloadJson).toHaveBeenCalledWith("config.json", { $schema: "./config.schema.json", ...TEST_CONFIG });
   });
 
   it("blocks the download and explains why when a link is not a web address", async () => {

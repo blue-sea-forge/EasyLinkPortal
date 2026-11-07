@@ -33,6 +33,8 @@ Everything shown on the home page comes from `public/config.json`: the name, the
 - Links must start with `http://` or `https://`.
 - The available icon names are the keys in `src/config/icons.ts`.
 
+`config.schema.json` describes the format. `config.json` points to it with `$schema`, so editors such as VS Code suggest the valid values and flag mistakes while you type. The generator keeps that line in the files it downloads.
+
 If the file is missing or invalid, the portal shows the 500 page and the browser console lists what is wrong.
 
 ### Config generator

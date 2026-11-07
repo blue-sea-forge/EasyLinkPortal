@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Header } from "../components/Header";
 import { LoadingNotice } from "../components/LoadingNotice";
 import { TileEditor } from "../components/TileEditor";
-import { validateConfig, type PortalConfig } from "../config/portalConfig";
+import { CONFIG_SCHEMA_PATH, validateConfig, type PortalConfig } from "../config/portalConfig";
 import { useConfig } from "../config/useConfig";
 import { downloadJson } from "../generator/downloadJson";
 import { createFormState, createTileDraft, moveItem, toConfigInput, type FormState, type TileDraft } from "../generator/formState";
@@ -127,7 +127,7 @@ function ConfigGenerator({ startingConfig, hasLoadFailed }: ConfigGeneratorProps
           type="button"
           className="button"
           disabled={!result.ok}
-          onClick={() => result.ok && downloadJson(CONFIG_FILE_NAME, result.config)}
+          onClick={() => result.ok && downloadJson(CONFIG_FILE_NAME, { $schema: CONFIG_SCHEMA_PATH, ...result.config })}
         >
           Download {CONFIG_FILE_NAME}
         </button>
