@@ -1,0 +1,102 @@
+name: Deploy to OVH
+description: Uploads a local folder to an OVH web hosting over SFTP with lftp.
+
+inputs:
+  host:
+    description: Server address of the hosting.
+    required: true
+  user:
+    description: SFTP user.
+    required: true
+  password:
+    description: SFTP password.
+    required: true
+  port:
+    description: SSH port of the hosting.
+    default: "22"
+  host-key:
+    description: >-
+      Public key of the server, one line as printed by
+      "ssh-keyscan -t ed25519 HOST". The connection is refused if the server
+      presents another key, so credentials are never sent to an impostor.
+      Empty means the key is not checked: any server answering on the host
+      name is trusted, which leaves the deployment open to a man-in-the-middle.
+    default: ""
+  local-dir:
+    description: Folder to upload, relative to the repository root.
+    default: public
+  remote-dir:
+    description: Remote directory. Empty means www/.
+    default: www/
+  delete:
+    description: >-
+      "true" also deletes remote files that are not in the local folder. Off by
+      default because the www/ folder of an OVH plan can hold files that do not
+      come from this repository (other sites, cgi-bin).
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - name: Install lftp
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends lftp
+
+    - name: Upload
+      shell: bash
+      # Inputs are passed as environment variables, never pasted into the
+      # script, so a value cannot inject shell code.
+      env:
+        OVH_HOST: ${{ inputs.host }}
+        OVH_USER: ${{ inputs.user }}
+        OVH_PASSWORD: ${{ inputs.password }}
+        OVH_PORT: ${{ inputs.port }}
+        OVH_HOST_KEY: ${{ inputs.host-key }}
+        LOCAL_DIR: ${{ inputs.local-dir }}
+        REMOTE_DIR: ${{ inputs.remote-dir }}
+        DELETE: ${{ inputs.delete }}
+      run: |
+        set -euo pipefail
+
+        for variable in OVH_HOST OVH_USER OVH_PASSWORD OVH_PORT LOCAL_DIR; do
+          if [ -z "${!variable}" ]; then
+            echo "Missing input for $variable. Set it as a repository secret or variable." >&2
+            exit 1
+          fi
+        done
+
+        if [ ! -f "$LOCAL_DIR/index.html" ]; then
+          echo "$LOCAL_DIR/index.html not found. Check the local-dir input." >&2
+          exit 1
+        fi
+
+        REMOTE_DIR="${REMOTE_DIR:-www/}"
+        DELETE_FLAG=""
+        if [ "$DELETE" = "true" ]; then
+          DELETE_FLAG="--delete"
+        fi
+
+        # Pin the server key in a throwaway known_hosts file and make ssh refuse
+        # anything else. OVH does not publish its host keys, so without a
+        # pinned key the check is disabled and a warning is printed.
+        KNOWN_HOSTS="$(mktemp)"
+        trap 'rm -f "$KNOWN_HOSTS"' EXIT
+        if [ -n "$OVH_HOST_KEY" ]; then
+          printf '%s\n' "$OVH_HOST_KEY" > "$KNOWN_HOSTS"
+          HOST_CHECK="StrictHostKeyChecking=yes"
+        else
+          echo "::warning::host-key is empty, the server identity is not verified. Set the OVH_HOST_KEY secret."
+          HOST_CHECK="StrictHostKeyChecking=no"
+        fi
+
+        # The commands go through stdin so the password never shows up in the
+        # process list. $DELETE_FLAG is unquoted so an empty value vanishes.
+        lftp -f /dev/stdin <<LFTP_COMMANDS
+        set cmd:fail-exit yes
+        set net:max-retries 3
+        set net:timeout 30
+        set sftp:connect-program "ssh -a -x -o $HOST_CHECK -o UserKnownHostsFile=$KNOWN_HOSTS"
+        open -u "$OVH_USER","$OVH_PASSWORD" "sftp://$OVH_HOST:$OVH_PORT"
+        mirror --reverse --verbose --parallel=2 --only-newer $DELETE_FLAG "$LOCAL_DIR" "$REMOTE_DIR"
+        bye
+        LFTP_COMMANDS

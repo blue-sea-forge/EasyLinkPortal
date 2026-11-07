@@ -1,0 +1,57 @@
+name: Deploy to OVH
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deployment at a time, so two pushes cannot upload over each other.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      - run: npm run build
+
+      # Vite copies all of public/ into dist/. The Apache rules must sit at the
+      # root of the web directory next to index.html, and the folder they came
+      # from is not part of the site.
+      - name: Move Apache rules to the root of the build
+        run: |
+          mv dist/ovh-deployments/.htaccess dist/.htaccess
+          rmdir dist/ovh-deployments
+
+      - name: Check required files
+        run: |
+          for file in dist/index.html dist/config.json dist/generate-config/index.html dist/400.html dist/404.html dist/500.html dist/.htaccess; do
+            test -f "$file" || { echo "Missing $file" >&2; exit 1; }
+          done
+
+      - name: Upload dist/ to OVH
+        uses: ./.github/actions/deploy-ovh
+        with:
+          local-dir: dist
+          host: ${{ secrets.OVH_HOST }}
+          user: ${{ secrets.OVH_USER }}
+          password: ${{ secrets.OVH_PASSWORD }}
+          host-key: ${{ secrets.OVH_HOST_KEY }}
+          port: ${{ vars.OVH_PORT || '22' }}
+          remote-dir: ${{ vars.OVH_REMOTE_DIR }}
+          delete: ${{ vars.DEPLOY_DELETE }}

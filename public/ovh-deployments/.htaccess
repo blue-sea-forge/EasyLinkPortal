@@ -1,0 +1,50 @@
+# Ingress rules for the OVH shared hosting (Apache).
+# Deployed at the root of the web directory, next to index.html.
+
+# Error pages. Each one is a copy of the app that shows the matching status
+# page (see vite.config.ts). 403 is served as a 404 so that forbidden paths do
+# not reveal which files exist on the server.
+ErrorDocument 400 /400.html
+ErrorDocument 403 /404.html
+ErrorDocument 404 /404.html
+ErrorDocument 500 /500.html
+
+Options -Indexes -MultiViews
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Force HTTPS. OVH terminates TLS in front of Apache on some plans, so also
+  # trust X-Forwarded-Proto to avoid a redirect loop.
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Hide dotfiles (.htaccess, .git, .env). Dotfiles under .well-known stay
+  # reachable for certificate validation.
+  RewriteRule "(^|/)\.(?!well-known/)" - [F]
+
+  # /index.html is the same page as /, keep a single URL for it.
+  RewriteCond %{THE_REQUEST} \s/index\.html[\s?]
+  RewriteRule ^index\.html$ / [L,R=301]
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  Header always set Strict-Transport-Security "max-age=31536000"
+  # The site only loads its own CSS and images, so inline scripts are not needed.
+  Header always set Content-Security-Policy "default-src 'self'; style-src 'self'; img-src 'self' data:; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css image/svg+xml application/javascript application/json
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/html "access plus 5 minutes"
+</IfModule>
